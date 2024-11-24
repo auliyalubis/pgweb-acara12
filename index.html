@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>WebGIS With Geoserver and Leaflet</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <!-- JQuery -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <!-- Leaflet GeoServer Request -->
+    <script src="lib/L.Geoserver.js"></script>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>WebGIS Dengan Leaflet dan GeoServer</h1>
+    <div id="map"></div>
+    <div id="legend"></div>
+</body>
+
+</html>
+
+<script>
+    // Inisialisasi peta
+    var map = L.map("map").setView([-7.719626219479977, 110.38949581381593], 10);
+
+    // Tambahkan peta dasar
+    var osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution:
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    });
+
+    osm.addTo(map);
+
+    // Tambahkan layer WMS dari GeoServer
+    var wmsLayer1 = L.Geoserver.wms("http://localhost:8080/geoserver/PGWEB10/wms?", {
+        layers: "PGWEB10:ADMINISTRASIDESA_AR_25K",
+        format: "image/png",
+        transparent: true,
+    }).addTo(map);
+
+    var wmsLayer2 = L.Geoserver.wms("http://geoportal.slemankab.go.id/geoserver/wms", {
+        layers: "geonode:jalan_kabupaten_sleman_2023",
+        transparent: true,
+    }).addTo(map);
+
+    var wmsLayer3 = L.Geoserver.wms("http://localhost:8080/geoserver/PGWEB10/wms?", {
+        layers: "PGWEB10:Jumlah_Penduduk_Sleman",
+        format: "image/png",
+        transparent: true,
+    }).addTo(map);
+
+    var wfsLayer = L.Geoserver.wfs("http://localhost:8080/geoserver//PGWEB10/wfs", {
+        layers: "PGWEB10:ADMINISTRASIDESA_AR_25K",
+        style: {
+            color: "black",
+            fillOpacity: "0.3",
+            fillColor: "red",
+        },
+        onEachFeature: function (feature, layer) {
+            console.log(feature);
+            layer.bindPopup(
+                "this is popuped. Building type: " + feature.properties.TYPE
+            );
+        },
+        // CQL_FILTER: "district='Syangja'",
+    });
+    // wfsLayer.addTo(map);
+
+    // Menampilkan legenda dari Geoserver
+    var legend = L.control({ position: 'bottomleft' });
+
+    legend.onAdd = function () {
+        var div = L.DomUtil.create('div', 'info legend');
+        div.innerHTML += "<h4>Legenda</h4>";
+        div.innerHTML += "<img src='http://localhost:8080/geoserver/PGWEB10/wms?REQUEST=GetLegendGraphic&VERSION=1.0.0&FORMAT=image/png&LAYER=PGWEB10:ADMINISTRASIDESA_AR_25K' alt='Legenda' />";
+        return div;
+    };
+
+    legend.addTo(map);
+
+    //Menampilkan BaseMap
+    var baseMaps = {
+        "OpenStreetMap": osm
+    };
+    var overlayMaps = {
+        "Batas Administrasi Desa": wmsLayer1,
+        "Jalan": wmsLayer2,
+        "Penduduk": wmsLayer3
+    };
+    var layerControl = L.control.layers(baseMaps, overlayMaps).addTo(map);
+
+</script>
